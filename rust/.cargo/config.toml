@@ -1,2 +1,13 @@
 [alias]
 xtask = "run --release --package xtask --"
+
+# Apple Silicon: target Apple M1 (a14 ISA) by default. This unlocks NEON
+# auto-vectorisation and Apple-specific tuning. Override with
+# RUSTFLAGS="-C target-cpu=native" for the local machine if you want
+# whatever the host actually is.
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "target-cpu=apple-m1"]
+
+# Intel Mac: tune for the cheapest CPU still in support.
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "target-cpu=ivybridge"]

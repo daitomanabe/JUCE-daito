@@ -13,8 +13,18 @@ on:
 
 jobs:
   check:
-    name: build / test / clippy / fmt
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-14         # Apple Silicon (M1)
+            target: aarch64-apple-darwin
+          - os: macos-13         # Intel
+            target: x86_64-apple-darwin
     defaults:
       run:
         working-directory: rust
@@ -22,6 +32,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Linux audio / GUI dev libs
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -35,6 +46,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -44,10 +56,24 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --tests -- -D warnings
+        run: cargo clippy --workspace --all-targets --tests --target ${{ matrix.target }} -- -D warnings
 
       - name: Build
-        run: cargo build --workspace --all-targets
+        run: cargo build --workspace --all-targets --target ${{ matrix.target }}
 
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --workspace --target ${{ matrix.target }}
+
+      - name: Bundle plugin (release)
+        run: cargo xtask bundle plugin-synth --release --target ${{ matrix.target }}
+
+      - name: Upload plug-in bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-synth-${{ matrix.target }}
+          path: |
+            rust/target/${{ matrix.target }}/bundled/
+            rust/target/bundled/
+          if-no-files-found: ignore
+          retention-days: 7

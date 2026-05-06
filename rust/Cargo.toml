@@ -52,6 +52,25 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 debug = "line-tables-only"
+strip = "debuginfo"
+
+# Plug-ins are dynamically loaded by the host so we can drop the panic
+# unwinder; saves a few hundred KB and a tiny bit of overhead. Standalone
+# binaries inherit `panic = "unwind"` from the default profile.
+[profile.release-plugin]
+inherits = "release"
+panic = "abort"
 
 [profile.dev]
 opt-level = 1
+
+# DSP code that is unbearably slow at -O1 (FFT, oversampling) gets bumped
+# even in dev builds. Tests still finish in <1s with this in place.
+[profile.dev.package."rustfft"]
+opt-level = 3
+[profile.dev.package."realfft"]
+opt-level = 3
+[profile.dev.package."primal-check"]
+opt-level = 3
+[profile.dev.package."transpose"]
+opt-level = 3

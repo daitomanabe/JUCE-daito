@@ -58,6 +58,20 @@ cargo xtask bundle plugin-synth --release
 Outputs land in `target/bundled/`. Both VST3 (`.vst3`) and CLAP (`.clap`)
 artifacts are produced from the same crate.
 
+### macOS
+
+Apple Silicon and Intel each have their own `target-cpu` baseline configured
+in `.cargo/config.toml`. To produce a Universal 2 bundle covering both, run
+`./scripts/mac-bundle-universal.sh plugin-synth` — this performs both
+per-arch bundle builds and `lipo`s the resulting Mach-O binaries.
+
+`./scripts/mac-install-plugin.sh` copies bundles into the user's
+`~/Library/Audio/Plug-Ins/{VST3,CLAP}/`.
+
+AU (Audio Unit) bundling is not yet supported by `nih-plug` upstream. When
+that lands we can add it to the same xtask invocation; the plug-in trait
+implementations remain unchanged.
+
 ## What we don't try to reproduce
 
 - JUCE's `Component` / `LookAndFeel` retained-mode GUI tree. egui is
