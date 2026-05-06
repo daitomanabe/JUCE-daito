@@ -28,7 +28,12 @@ cargo build --workspace
 cargo run -p standalone-synth
 ```
 
-For the plug-in, follow the `nih-plug` bundle workflow (see `ROADMAP.md`).
+Bundle the plug-in (produces both `.clap` and `.vst3` under
+`target/bundled/`):
+
+```bash
+cargo xtask bundle plugin-synth --release
+```
 
 ## Status
 

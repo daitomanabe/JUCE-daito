@@ -8,6 +8,7 @@ members = [
     "crates/jd-gui",
     "examples/standalone-synth",
     "examples/plugin-synth",
+    "xtask",
 ]
 
 [workspace.package]
@@ -35,6 +36,7 @@ egui      = "0.31"
 eframe    = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+nih_plug_xtask = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 anyhow    = "1.0"
 thiserror = "2.0"
 log       = "0.4"
