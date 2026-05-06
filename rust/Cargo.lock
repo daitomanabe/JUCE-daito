@@ -3304,6 +3304,7 @@ dependencies = [
  "jd-gui",
  "log",
  "parking_lot",
+ "ringbuf",
 ]
 
 [[package]]
