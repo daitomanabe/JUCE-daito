@@ -1,0 +1,13 @@
+[package]
+name = "jd-gui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "egui-based GUI components for juce-daito (counterpart of juce_gui_basics)"
+
+[dependencies]
+jd-core.workspace = true
+egui.workspace = true

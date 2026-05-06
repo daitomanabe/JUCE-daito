@@ -1,0 +1,55 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/jd-core",
+    "crates/jd-dsp",
+    "crates/jd-audio-io",
+    "crates/jd-formats",
+    "crates/jd-gui",
+    "examples/standalone-synth",
+    "examples/plugin-synth",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/daitomanabe/juce-daito"
+authors = ["JUCE-daito contributors"]
+
+[workspace.dependencies]
+jd-core      = { path = "crates/jd-core",      version = "0.1.0" }
+jd-dsp       = { path = "crates/jd-dsp",       version = "0.1.0" }
+jd-audio-io  = { path = "crates/jd-audio-io",  version = "0.1.0" }
+jd-formats   = { path = "crates/jd-formats",   version = "0.1.0" }
+jd-gui       = { path = "crates/jd-gui",       version = "0.1.0" }
+
+cpal      = "0.15"
+midir     = "0.10"
+symphonia = { version = "0.5", default-features = false, features = ["wav", "flac", "mp3", "aac", "isomp4"] }
+hound     = "3.5"
+rustfft   = "6.2"
+realfft   = "3.4"
+egui      = "0.28"
+eframe    = { version = "0.28", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+anyhow    = "1.0"
+thiserror = "2.0"
+log       = "0.4"
+env_logger = "0.11"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+ringbuf   = "0.4"
+num-traits = "0.2"
+num-complex = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+debug = "line-tables-only"
+
+[profile.dev]
+opt-level = 1

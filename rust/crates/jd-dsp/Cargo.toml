@@ -1,0 +1,16 @@
+[package]
+name = "jd-dsp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "DSP primitives for juce-daito (counterpart of juce_dsp)"
+
+[dependencies]
+jd-core.workspace = true
+num-traits.workspace = true
+num-complex.workspace = true
+realfft.workspace = true
+rustfft.workspace = true

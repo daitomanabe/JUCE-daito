@@ -1,0 +1,18 @@
+[package]
+name = "jd-audio-io"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Audio/MIDI I/O for juce-daito (counterpart of juce_audio_devices)"
+
+[dependencies]
+jd-core.workspace = true
+cpal.workspace = true
+midir.workspace = true
+crossbeam-channel.workspace = true
+ringbuf.workspace = true
+log.workspace = true
+thiserror.workspace = true

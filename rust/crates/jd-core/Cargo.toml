@@ -1,0 +1,15 @@
+[package]
+name = "jd-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Core utilities for juce-daito (counterpart of juce_core)"
+
+[dependencies]
+thiserror.workspace = true
+anyhow.workspace = true
+log.workspace = true
+parking_lot.workspace = true
