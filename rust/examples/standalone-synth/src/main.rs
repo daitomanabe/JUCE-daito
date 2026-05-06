@@ -1,22 +1,73 @@
-//! Standalone sine-wave synth driven by jd-audio-io and jd-gui.
+//! Standalone monophonic synth driven by jd-audio-io and jd-gui.
+//!
+//! Plays a sine wave triggered by the on-screen "hold to play" button or by
+//! a connected MIDI input device (last-note priority).
 
-use jd_audio_io::{AudioCallback, AudioDevice, AudioDeviceConfig};
+use crossbeam_channel::Receiver;
+use jd_audio_io::midi::MidiMessage;
+use jd_audio_io::{AudioCallback, AudioDevice, AudioDeviceConfig, MidiInput};
 use jd_core::atomic::AtomicF32;
 use jd_dsp::{envelope::Adsr, oscillator};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 struct SharedState {
     freq_hz: AtomicF32,
     gain: AtomicF32,
-    gate: std::sync::atomic::AtomicBool,
+    /// Manual gate driven by the on-screen button.
+    gui_gate: AtomicBool,
 }
 
 struct Engine {
     state: Arc<SharedState>,
+    midi_rx: Option<Receiver<MidiMessage>>,
     osc: oscillator::Oscillator<Box<dyn FnMut(f32) -> f32 + Send>>,
     env: Adsr,
     sample_rate: f32,
     last_freq: f32,
+    midi_held_note: Option<u8>,
+    last_gui_gate: bool,
+}
+
+impl Engine {
+    fn handle_midi(&mut self) {
+        let Some(rx) = self.midi_rx.as_ref() else {
+            return;
+        };
+        while let Ok(msg) = rx.try_recv() {
+            if msg.is_note_on() {
+                if let (Some(note), Some(_vel)) = (msg.note_number(), msg.velocity()) {
+                    let freq = midi_note_to_hz(note);
+                    self.osc.set_frequency(freq, self.sample_rate);
+                    self.state.freq_hz.store(freq);
+                    self.last_freq = freq;
+                    self.midi_held_note = Some(note);
+                    self.env.note_on();
+                }
+            } else if msg.is_note_off()
+                && Some(msg.note_number().unwrap_or(0)) == self.midi_held_note
+            {
+                self.env.note_off();
+                self.midi_held_note = None;
+            }
+        }
+    }
+
+    fn handle_gui_gate(&mut self) {
+        let gate = self.state.gui_gate.load(Ordering::Relaxed);
+        if gate && !self.last_gui_gate {
+            // GUI just pressed: respect the slider-driven frequency.
+            let freq = self.state.freq_hz.load();
+            if (freq - self.last_freq).abs() > f32::EPSILON {
+                self.osc.set_frequency(freq, self.sample_rate);
+                self.last_freq = freq;
+            }
+            self.env.note_on();
+        } else if !gate && self.last_gui_gate && self.midi_held_note.is_none() {
+            self.env.note_off();
+        }
+        self.last_gui_gate = gate;
+    }
 }
 
 impl AudioCallback for Engine {
@@ -24,22 +75,22 @@ impl AudioCallback for Engine {
         if (sample_rate - self.sample_rate).abs() > f32::EPSILON {
             self.sample_rate = sample_rate;
             self.env = Adsr::new(sample_rate);
+            self.osc.set_frequency(self.last_freq, sample_rate);
         }
 
-        let freq = self.state.freq_hz.load();
-        if (freq - self.last_freq).abs() > f32::EPSILON {
-            self.osc.set_frequency(freq, sample_rate);
-            self.last_freq = freq;
+        self.handle_midi();
+        self.handle_gui_gate();
+
+        // Slider-driven freq tweaks while a GUI note is held.
+        if self.last_gui_gate {
+            let freq = self.state.freq_hz.load();
+            if (freq - self.last_freq).abs() > f32::EPSILON {
+                self.osc.set_frequency(freq, sample_rate);
+                self.last_freq = freq;
+            }
         }
 
         let gain = self.state.gain.load();
-        let gate = self.state.gate.load(std::sync::atomic::Ordering::Relaxed);
-        if gate && !self.env.is_active() {
-            self.env.note_on();
-        } else if !gate && self.env.is_active() {
-            self.env.note_off();
-        }
-
         let frames = output.len() / num_channels;
         for frame in 0..frames {
             let s = self.osc.process() * self.env.tick() * gain;
@@ -50,9 +101,15 @@ impl AudioCallback for Engine {
     }
 }
 
+fn midi_note_to_hz(note: u8) -> f32 {
+    440.0 * 2f32.powf((note as f32 - 69.0) / 12.0)
+}
+
 struct App {
     state: Arc<SharedState>,
     _device: AudioDevice,
+    _midi: Option<MidiInput>,
+    midi_status: String,
 }
 
 impl App {
@@ -60,7 +117,7 @@ impl App {
         let state = Arc::new(SharedState {
             freq_hz: AtomicF32::new(440.0),
             gain: AtomicF32::new(0.2),
-            gate: std::sync::atomic::AtomicBool::new(false),
+            gui_gate: AtomicBool::new(false),
         });
 
         let mut osc = oscillator::Oscillator::new(
@@ -68,12 +125,28 @@ impl App {
         );
         osc.set_frequency(440.0, 48_000.0);
 
+        let (midi_input, midi_rx, midi_status) =
+            match MidiInput::open_first_available("juce-daito standalone-synth") {
+                Ok(m) => {
+                    let rx = m.receiver();
+                    (
+                        Some(m),
+                        Some(rx),
+                        "MIDI: connected to first port".to_string(),
+                    )
+                }
+                Err(e) => (None, None, format!("MIDI: {e}")),
+            };
+
         let engine = Engine {
             state: Arc::clone(&state),
+            midi_rx,
             osc,
             env: Adsr::new(48_000.0),
             sample_rate: 48_000.0,
             last_freq: 440.0,
+            midi_held_note: None,
+            last_gui_gate: false,
         };
 
         let device = AudioDevice::open_default_output(AudioDeviceConfig::default(), engine)
@@ -82,6 +155,8 @@ impl App {
         Self {
             state,
             _device: device,
+            _midi: midi_input,
+            midi_status,
         }
     }
 }
@@ -92,6 +167,8 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("juce-daito · standalone synth");
+            ui.add_space(4.0);
+            ui.label(&self.midi_status);
             ui.add_space(8.0);
 
             let mut freq = self.state.freq_hz.load();
@@ -116,9 +193,7 @@ impl eframe::App for App {
 
             ui.add_space(8.0);
             let pressed = ui.button("Hold to play").is_pointer_button_down_on();
-            self.state
-                .gate
-                .store(pressed, std::sync::atomic::Ordering::Relaxed);
+            self.state.gui_gate.store(pressed, Ordering::Relaxed);
         });
 
         ctx.request_repaint();

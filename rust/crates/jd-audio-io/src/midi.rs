@@ -74,4 +74,21 @@ impl MidiInput {
     pub fn try_recv(&self) -> Option<MidiMessage> {
         self.rx.try_recv().ok()
     }
+
+    /// Clone of the receiver for use from the audio thread. The audio thread
+    /// can call `try_recv()` on it which is wait-free in the empty case.
+    pub fn receiver(&self) -> Receiver<MidiMessage> {
+        self.rx.clone()
+    }
+
+    /// List the names of all available MIDI input ports.
+    pub fn list_ports(client_name: &str) -> Result<Vec<String>> {
+        let input =
+            RawMidiInput::new(client_name).map_err(|e| jd_core::Error::Other(e.to_string()))?;
+        Ok(input
+            .ports()
+            .iter()
+            .filter_map(|p| input.port_name(p).ok())
+            .collect())
+    }
 }
