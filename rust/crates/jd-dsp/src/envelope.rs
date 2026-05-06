@@ -11,7 +11,13 @@ pub struct Adsr {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum State { Idle, Attack, Decay, Sustain, Release }
+enum State {
+    Idle,
+    Attack,
+    Decay,
+    Sustain,
+    Release,
+}
 
 impl Adsr {
     pub fn new(sample_rate: f32) -> Self {
@@ -43,7 +49,7 @@ impl Adsr {
         }
     }
 
-    pub fn next(&mut self) -> f32 {
+    pub fn tick(&mut self) -> f32 {
         let dt = 1.0 / self.sample_rate;
         match self.state {
             State::Idle => self.value = 0.0,
@@ -75,5 +81,44 @@ impl Adsr {
 
     pub fn is_active(&self) -> bool {
         self.state != State::Idle
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn idle_envelope_outputs_zero() {
+        let mut env = Adsr::new(48_000.0);
+        for _ in 0..100 {
+            assert_eq!(env.tick(), 0.0);
+        }
+    }
+
+    #[test]
+    fn note_on_reaches_peak_then_decays_to_sustain() {
+        let mut env = Adsr::new(48_000.0);
+        env.set_parameters(0.001, 0.001, 0.5, 0.001);
+        env.note_on();
+        for _ in 0..1000 {
+            env.tick();
+        }
+        assert!((env.tick() - 0.5).abs() < 0.05);
+    }
+
+    #[test]
+    fn note_off_returns_to_idle() {
+        let mut env = Adsr::new(48_000.0);
+        env.set_parameters(0.001, 0.001, 0.5, 0.001);
+        env.note_on();
+        for _ in 0..1000 {
+            env.tick();
+        }
+        env.note_off();
+        for _ in 0..2000 {
+            env.tick();
+        }
+        assert!(!env.is_active());
     }
 }

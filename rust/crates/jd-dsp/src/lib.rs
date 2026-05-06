@@ -4,11 +4,11 @@
 //! envelope followers, etc. Each module is intentionally minimal and
 //! `no_std`-friendly where possible (allocation only for buffers).
 
-pub mod oscillator;
+pub mod buffer;
+pub mod envelope;
+pub mod fft;
 pub mod filter;
 pub mod gain;
-pub mod envelope;
-pub mod buffer;
-pub mod fft;
+pub mod oscillator;
 
 pub use buffer::AudioBuffer;

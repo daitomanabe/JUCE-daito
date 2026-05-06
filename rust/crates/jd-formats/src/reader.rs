@@ -22,7 +22,12 @@ pub fn read_to_buffer<P: AsRef<Path>>(path: P) -> Result<(AudioBuffer, u32)> {
     }
 
     let probed = symphonia::default::get_probe()
-        .format(&hint, mss, &FormatOptions::default(), &MetadataOptions::default())
+        .format(
+            &hint,
+            mss,
+            &FormatOptions::default(),
+            &MetadataOptions::default(),
+        )
         .map_err(|e| Error::Other(e.to_string()))?;
 
     let mut format = probed.format;

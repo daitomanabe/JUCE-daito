@@ -4,7 +4,11 @@ use std::path::Path;
 
 /// Counterpart of `juce::WavAudioFormat::createWriterFor`. Writes a 32-bit
 /// float WAV to disk.
-pub fn write_wav_f32<P: AsRef<Path>>(path: P, buffer: &AudioBuffer, sample_rate: u32) -> Result<()> {
+pub fn write_wav_f32<P: AsRef<Path>>(
+    path: P,
+    buffer: &AudioBuffer,
+    sample_rate: u32,
+) -> Result<()> {
     let spec = hound::WavSpec {
         channels: buffer.num_channels() as u16,
         sample_rate,
@@ -12,8 +16,8 @@ pub fn write_wav_f32<P: AsRef<Path>>(path: P, buffer: &AudioBuffer, sample_rate:
         sample_format: hound::SampleFormat::Float,
     };
 
-    let mut writer = hound::WavWriter::create(path, spec)
-        .map_err(|e| Error::Other(e.to_string()))?;
+    let mut writer =
+        hound::WavWriter::create(path, spec).map_err(|e| Error::Other(e.to_string()))?;
 
     let frames = buffer.num_samples();
     let channels = buffer.num_channels();
@@ -25,8 +29,6 @@ pub fn write_wav_f32<P: AsRef<Path>>(path: P, buffer: &AudioBuffer, sample_rate:
         }
     }
 
-    writer
-        .finalize()
-        .map_err(|e| Error::Other(e.to_string()))?;
+    writer.finalize().map_err(|e| Error::Other(e.to_string()))?;
     Ok(())
 }

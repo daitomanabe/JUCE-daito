@@ -5,5 +5,5 @@
 //! audio-oriented widgets that fit the way egui apps and `nih-plug` plug-in
 //! editors are typically structured.
 
-pub mod widgets;
 pub mod theme;
+pub mod widgets;

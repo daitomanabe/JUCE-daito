@@ -42,7 +42,7 @@ impl AudioCallback for Engine {
 
         let frames = output.len() / num_channels;
         for frame in 0..frames {
-            let s = self.osc.process() * self.env.next() * gain;
+            let s = self.osc.process() * self.env.tick() * gain;
             for ch in 0..num_channels {
                 output[frame * num_channels + ch] = s;
             }
@@ -64,7 +64,7 @@ impl App {
         });
 
         let mut osc = oscillator::Oscillator::new(
-            Box::new(|p: f32| p.sin()) as Box<dyn FnMut(f32) -> f32 + Send>,
+            Box::new(|p: f32| p.sin()) as Box<dyn FnMut(f32) -> f32 + Send>
         );
         osc.set_frequency(440.0, 48_000.0);
 
@@ -79,7 +79,10 @@ impl App {
         let device = AudioDevice::open_default_output(AudioDeviceConfig::default(), engine)
             .expect("failed to open audio output");
 
-        Self { state, _device: device }
+        Self {
+            state,
+            _device: device,
+        }
     }
 }
 
@@ -93,7 +96,11 @@ impl eframe::App for App {
 
             let mut freq = self.state.freq_hz.load();
             if ui
-                .add(egui::Slider::new(&mut freq, 20.0..=4000.0).logarithmic(true).text("Freq Hz"))
+                .add(
+                    egui::Slider::new(&mut freq, 20.0..=4000.0)
+                        .logarithmic(true)
+                        .text("Freq Hz"),
+                )
                 .changed()
             {
                 self.state.freq_hz.store(freq);

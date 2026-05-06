@@ -6,5 +6,5 @@
 pub mod audio;
 pub mod midi;
 
-pub use audio::{AudioDevice, AudioCallback, AudioDeviceConfig};
+pub use audio::{AudioCallback, AudioDevice, AudioDeviceConfig};
 pub use midi::{MidiInput, MidiMessage};

@@ -5,9 +5,9 @@
 //! maps directly onto Rust's `std`, so this crate stays intentionally small —
 //! only things that are not idiomatic in `std` live here.
 
-pub mod error;
-pub mod time;
-pub mod range;
 pub mod atomic;
+pub mod error;
+pub mod range;
+pub mod time;
 
 pub use error::{Error, Result};

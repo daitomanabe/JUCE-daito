@@ -61,7 +61,7 @@ impl Default for SynthParams {
 impl Default for PluginSynth {
     fn default() -> Self {
         let mut osc = oscillator::Oscillator::new(
-            Box::new(|p: f32| p.sin()) as Box<dyn FnMut(f32) -> f32 + Send>,
+            Box::new(|p: f32| p.sin()) as Box<dyn FnMut(f32) -> f32 + Send>
         );
         osc.set_frequency(440.0, 48_000.0);
         Self {
@@ -159,7 +159,7 @@ impl Plugin for PluginSynth {
             }
 
             let gain = self.params.gain.smoothed.next();
-            let s = self.osc.process() * self.env.next() * gain;
+            let s = self.osc.process() * self.env.tick() * gain;
             for sample in channel_samples {
                 *sample = s;
             }

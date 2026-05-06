@@ -43,3 +43,26 @@ impl AudioBuffer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_buffer_is_zeroed() {
+        let buf = AudioBuffer::new(2, 64);
+        assert_eq!(buf.num_channels(), 2);
+        assert_eq!(buf.num_samples(), 64);
+        for ch in 0..2 {
+            assert!(buf.channel(ch).iter().all(|&s| s == 0.0));
+        }
+    }
+
+    #[test]
+    fn resize_preserves_existing_data() {
+        let mut buf = AudioBuffer::new(1, 4);
+        buf.channel_mut(0).copy_from_slice(&[1.0, 2.0, 3.0, 4.0]);
+        buf.resize(1, 8);
+        assert_eq!(&buf.channel(0)[..4], &[1.0, 2.0, 3.0, 4.0]);
+    }
+}

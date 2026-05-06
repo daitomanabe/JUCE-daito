@@ -24,7 +24,7 @@ impl SmoothedGain {
         self.step = (target - self.current) / self.steps_remaining as f32;
     }
 
-    pub fn next(&mut self) -> f32 {
+    pub fn tick(&mut self) -> f32 {
         if self.steps_remaining > 0 {
             self.current += self.step;
             self.steps_remaining -= 1;
@@ -37,7 +37,7 @@ impl SmoothedGain {
 
     pub fn apply(&mut self, samples: &mut [f32]) {
         for s in samples {
-            *s *= self.next();
+            *s *= self.tick();
         }
     }
 }
@@ -48,4 +48,29 @@ pub fn db_to_linear(db: f32) -> f32 {
 
 pub fn linear_to_db(linear: f32) -> f32 {
     20.0 * linear.max(1e-9).log10()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn db_round_trip() {
+        for db in [-60.0, -12.0, 0.0, 6.0_f32] {
+            let round = linear_to_db(db_to_linear(db));
+            assert!((round - db).abs() < 1e-3);
+        }
+    }
+
+    #[test]
+    fn smoothed_gain_ramps_linearly() {
+        let mut g = SmoothedGain::new(0.0);
+        g.set_target(1.0, 100);
+        for i in 1..=100 {
+            let v = g.tick();
+            let expected = i as f32 / 100.0;
+            assert!((v - expected).abs() < 1e-4, "step {i}: {v} vs {expected}");
+        }
+        assert_eq!(g.tick(), 1.0);
+    }
 }

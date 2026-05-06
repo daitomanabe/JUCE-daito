@@ -44,8 +44,8 @@ pub struct MidiInput {
 
 impl MidiInput {
     pub fn open_first_available(client_name: &str) -> Result<Self> {
-        let mut input = RawMidiInput::new(client_name)
-            .map_err(|e| jd_core::Error::Other(e.to_string()))?;
+        let mut input =
+            RawMidiInput::new(client_name).map_err(|e| jd_core::Error::Other(e.to_string()))?;
         input.ignore(midir::Ignore::None);
 
         let ports = input.ports();

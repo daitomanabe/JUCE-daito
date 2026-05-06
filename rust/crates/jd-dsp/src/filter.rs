@@ -4,9 +4,13 @@ use std::f32::consts::TAU;
 /// the common low/high-pass cases. Uses RBJ cookbook coefficients.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Biquad {
-    b0: f32, b1: f32, b2: f32,
-    a1: f32, a2: f32,
-    z1: f32, z2: f32,
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    z1: f32,
+    z2: f32,
 }
 
 impl Biquad {
@@ -15,12 +19,12 @@ impl Biquad {
         let cos_w0 = w0.cos();
         let alpha = w0.sin() / (2.0 * q);
 
-        let b0 =  (1.0 - cos_w0) / 2.0;
-        let b1 =   1.0 - cos_w0;
-        let b2 =  (1.0 - cos_w0) / 2.0;
-        let a0 =   1.0 + alpha;
-        let a1 =  -2.0 * cos_w0;
-        let a2 =   1.0 - alpha;
+        let b0 = (1.0 - cos_w0) / 2.0;
+        let b1 = 1.0 - cos_w0;
+        let b2 = (1.0 - cos_w0) / 2.0;
+        let a0 = 1.0 + alpha;
+        let a1 = -2.0 * cos_w0;
+        let a2 = 1.0 - alpha;
 
         self.b0 = b0 / a0;
         self.b1 = b1 / a0;
@@ -34,12 +38,12 @@ impl Biquad {
         let cos_w0 = w0.cos();
         let alpha = w0.sin() / (2.0 * q);
 
-        let b0 =  (1.0 + cos_w0) / 2.0;
+        let b0 = (1.0 + cos_w0) / 2.0;
         let b1 = -(1.0 + cos_w0);
-        let b2 =  (1.0 + cos_w0) / 2.0;
-        let a0 =   1.0 + alpha;
-        let a1 =  -2.0 * cos_w0;
-        let a2 =   1.0 - alpha;
+        let b2 = (1.0 + cos_w0) / 2.0;
+        let a0 = 1.0 + alpha;
+        let a1 = -2.0 * cos_w0;
+        let a2 = 1.0 - alpha;
 
         self.b0 = b0 / a0;
         self.b1 = b1 / a0;
@@ -58,5 +62,49 @@ impl Biquad {
     pub fn reset(&mut self) {
         self.z1 = 0.0;
         self.z2 = 0.0;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rms(samples: &[f32]) -> f32 {
+        let sum_sq: f32 = samples.iter().map(|s| s * s).sum();
+        (sum_sq / samples.len() as f32).sqrt()
+    }
+
+    fn sine_buffer(freq_hz: f32, sample_rate: f32, len: usize) -> Vec<f32> {
+        use std::f32::consts::TAU;
+        (0..len)
+            .map(|i| (TAU * freq_hz * i as f32 / sample_rate).sin())
+            .collect()
+    }
+
+    #[test]
+    fn lowpass_attenuates_above_cutoff() {
+        let sr = 48_000.0;
+        let mut filter = Biquad::default();
+        filter.lowpass(500.0, 0.707, sr);
+
+        let high = sine_buffer(8_000.0, sr, 8192);
+        let filtered: Vec<f32> = high.iter().map(|&x| filter.process(x)).collect();
+        let attenuation = rms(&filtered) / rms(&high);
+        assert!(
+            attenuation < 0.2,
+            "expected high freq attenuated, got {attenuation}"
+        );
+    }
+
+    #[test]
+    fn lowpass_passes_below_cutoff() {
+        let sr = 48_000.0;
+        let mut filter = Biquad::default();
+        filter.lowpass(5_000.0, 0.707, sr);
+
+        let low = sine_buffer(100.0, sr, 8192);
+        let filtered: Vec<f32> = low.iter().map(|&x| filter.process(x)).collect();
+        let ratio = rms(&filtered) / rms(&low);
+        assert!(ratio > 0.9, "expected low freq passed, got {ratio}");
     }
 }
